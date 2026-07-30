@@ -36,7 +36,6 @@
       margin-bottom: 24px;
     }
 
-    /* Progress bar */
     .progress-bar-wrap {
       background: #eee;
       border-radius: 99px;
@@ -51,7 +50,6 @@
       transition: width 0.5s ease;
     }
 
-    /* Steps */
     .steps { display: flex; flex-direction: column; gap: 0; }
 
     .step {
@@ -61,7 +59,6 @@
       position: relative;
     }
 
-    /* Connector line */
     .step:not(:last-child)::after {
       content: '';
       position: absolute;
@@ -72,9 +69,7 @@
       background: #e0e0e0;
       z-index: 0;
     }
-    .step.done:not(:last-child)::after {
-      background: #2e7d32;
-    }
+    .step.done:not(:last-child)::after { background: #2e7d32; }
 
     .icon-wrap {
       width: 32px;
@@ -89,38 +84,19 @@
       background: #fff;
       position: relative;
     }
-    .step.done .icon-wrap {
-      background: #2e7d32;
-      border-color: #2e7d32;
-    }
-    .step.active .icon-wrap {
-      background: #fff;
-      border-color: #f59e0b;
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
-    }
-    .step.pending .icon-wrap {
-      background: #f5f5f5;
-      border-color: #e0e0e0;
-    }
+    .step.done .icon-wrap  { background: #2e7d32; border-color: #2e7d32; }
+    .step.active .icon-wrap { background: #fff; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+    .step.pending .icon-wrap { background: #f5f5f5; border-color: #e0e0e0; }
 
-    .checkmark {
-      width: 14px;
-      height: 14px;
-      display: none;
-    }
+    .checkmark { width: 14px; height: 14px; display: none; }
     .step.done .checkmark { display: block; filter: invert(1); }
 
-    .step-num {
-      font-size: 11px;
-      font-weight: 700;
-      color: #bbb;
-    }
+    .step-num { font-size: 11px; font-weight: 700; color: #bbb; }
     .step.active .step-num { color: #f59e0b; }
 
     .spinner {
       display: none;
-      width: 14px;
-      height: 14px;
+      width: 14px; height: 14px;
       border: 2px solid #f59e0b;
       border-top-color: transparent;
       border-radius: 50%;
@@ -130,141 +106,150 @@
     .step.active .step-num { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .step-body {
-      padding: 6px 0 24px 0;
-    }
-    .step-label {
-      font-size: 14px;
-      font-weight: 600;
-      color: #1a1a1a;
-      line-height: 1.3;
-    }
+    .step-body { padding: 6px 0 24px 0; }
+    .step-label { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.3; }
     .step.done .step-label { color: #555; }
     .step.pending .step-label { color: #aaa; }
-    .step-desc {
-      font-size: 12px;
-      color: #aaa;
-      margin-top: 3px;
-      line-height: 1.4;
-    }
+    .step-desc { font-size: 12px; color: #aaa; margin-top: 3px; line-height: 1.4; }
     .step.active .step-desc { color: #888; }
 
     .badge {
       display: inline-block;
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 10px; font-weight: 700;
       letter-spacing: 0.4px;
       padding: 2px 8px;
       border-radius: 99px;
       margin-top: 6px;
     }
-    .badge-done { background: #e8f5e9; color: #2e7d32; }
-    .badge-active { background: #fff8e1; color: #b45309; }
+    .badge-done    { background: #e8f5e9; color: #2e7d32; }
+    .badge-active  { background: #fff8e1; color: #b45309; }
     .badge-pending { background: #f5f5f5; color: #bbb; }
+
+    /* Loading / error states */
+    .state-msg {
+      font-size: 13px;
+      color: #aaa;
+      text-align: center;
+      padding: 32px 0;
+    }
+    .state-msg.error { color: #e53935; }
   </style>
 </head>
 <body>
 
 <div class="card">
   <h2>LLC Formation Progress</h2>
-  <p class="subtitle" id="subtitle">Tracking your company setup</p>
+  <p class="subtitle" id="subtitle">Loading your progress...</p>
 
   <div class="progress-bar-wrap">
     <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
   </div>
 
-  <div class="steps" id="stepsContainer"></div>
+  <div class="steps" id="stepsContainer">
+    <p class="state-msg" id="stateMsg">Fetching status...</p>
+  </div>
 </div>
 
 <script>
-  // ─── STAGES ────────────────────────────────────────────────
-  // IDs match HubSpot Stage IDs — Pabbly passes ?stage=<hubspot_stage_id>
+  // ─── CONFIG ────────────────────────────────────────────────
+  const SHEET_ID   = "1QqB38Fjk35iLo5wRoVO2qLJjS79wpRZ__ZAl3H_pyVk";
+  const SHEET_NAME = "LLC Formation Pipeline";
+
+  // ─── STAGES (HubSpot Stage IDs) ────────────────────────────
   const STAGES = [
-    {
-      id: "1409895567",
-      label: "Onboarding",
-      desc: "Welcome! We're getting your account ready."
-    },
-    {
-      id: "1409895561",
-      label: "Account Setup",
-      desc: "Your account has been created and verified."
-    },
-    {
-      id: "1409895562",
-      label: "Formation Filing",
-      desc: "Articles of organization filed with the state."
-    },
-    {
-      id: "1409895563",
-      label: "LLC Registration",
-      desc: "State has registered your LLC."
-    },
-    {
-      id: "1409895564",
-      label: "SS-4 Signature",
-      desc: "IRS form SS-4 requires your signature."
-    },
-    {
-      id: "1409895565",
-      label: "EIN Processing",
-      desc: "IRS is processing your EIN application."
-    },
-    {
-      id: "1409895566",
-      label: "EIN Approval",
-      desc: "Your Employer Identification Number is ready."
-    },
-    {
-      id: "1409895208",
-      label: "LLC Completed",
-      desc: "Your LLC is fully formed and active. Congratulations!"
-    }
+    { id: "1409895567", label: "Onboarding",        desc: "Welcome! We're getting your account ready." },
+    { id: "1409895561", label: "Account Setup",      desc: "Your account has been created and verified." },
+    { id: "1409895562", label: "Formation Filing",   desc: "Articles of organization filed with the state." },
+    { id: "1409895563", label: "LLC Registration",   desc: "State has registered your LLC." },
+    { id: "1409895564", label: "SS-4 Signature",     desc: "IRS form SS-4 requires your signature." },
+    { id: "1409895565", label: "EIN Processing",     desc: "IRS is processing your EIN application." },
+    { id: "1409895566", label: "EIN Approval",       desc: "Your Employer Identification Number is ready." },
+    { id: "1409895208", label: "LLC Completed",      desc: "Your LLC is fully formed and active. Congratulations!" }
   ];
 
-  // ─── READ CURRENT STAGE FROM URL PARAM ─────────────────────
-  // Usage: embed URL as  checklist.html?stage=ss4_signature
-  // Pabbly will update this param when HubSpot stage changes
-  const params = new URLSearchParams(window.location.search);
-  const currentStageId = params.get("stage") || STAGES[0].id;
+  // ─── GET DEAL ID FROM URL ───────────────────────────────────
+  // Assembly embed URL format: checklist.html?deal=63264112971
+  const params  = new URLSearchParams(window.location.search);
+  const dealId  = params.get("deal");
 
-  const currentIndex = STAGES.findIndex(s => s.id === currentStageId);
-  const activeIndex = currentIndex >= 0 ? currentIndex : 0;
+  if (!dealId) {
+    showError("No deal ID provided. Add ?deal=YOUR_DEAL_ID to the URL.");
+  } else {
+    fetchStage(dealId);
+  }
 
-  // ─── PROGRESS BAR ──────────────────────────────────────────
-  const pct = Math.round((activeIndex / (STAGES.length - 1)) * 100);
-  document.getElementById("progressBar").style.width = pct + "%";
-  document.getElementById("subtitle").textContent =
-    `Step ${activeIndex + 1} of ${STAGES.length} · ${pct}% complete`;
+  // ─── FETCH FROM GOOGLE SHEETS ───────────────────────────────
+  function fetchStage(id) {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
-  // ─── RENDER STEPS ──────────────────────────────────────────
-  const container = document.getElementById("stepsContainer");
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        // Strip Google's JSONP wrapper
+        const json = JSON.parse(text.replace(/^[^{]*/, "").replace(/[^}]*$/, ""));
+        const rows = json.table.rows;
 
-  STAGES.forEach((stage, i) => {
-    const isDone = i < activeIndex;
-    const isActive = i === activeIndex;
-    const isPending = i > activeIndex;
+        // Find row where column A (company_id) matches our deal ID
+        const match = rows.find(r => {
+          const cellVal = r.c[0]?.v;
+          return cellVal !== null && cellVal !== undefined && String(cellVal) === String(id);
+        });
 
-    const cls = isDone ? "done" : isActive ? "active" : "pending";
-    const badgeCls = isDone ? "badge-done" : isActive ? "badge-active" : "badge-pending";
-    const badgeText = isDone ? "COMPLETE" : isActive ? "IN PROGRESS" : "PENDING";
+        if (!match) {
+          showError(`Deal ${id} not found in tracker. Please contact support.`);
+          return;
+        }
 
-    const step = document.createElement("div");
-    step.className = `step ${cls}`;
-    step.innerHTML = `
-      <div class="icon-wrap">
-        <img class="checkmark" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E" />
-        <span class="step-num">${i + 1}</span>
-        <div class="spinner"></div>
-      </div>
-      <div class="step-body">
-        <div class="step-label">${stage.label}</div>
-        <div class="step-desc">${stage.desc}</div>
-        <span class="badge ${badgeCls}">${badgeText}</span>
-      </div>
-    `;
-    container.appendChild(step);
-  });
+        // Column C = stage_id
+        const stageId = String(match.c[2]?.v ?? "");
+        render(stageId);
+      })
+      .catch(() => showError("Could not load progress. Please try again later."));
+  }
+
+  // ─── RENDER CHECKLIST ───────────────────────────────────────
+  function render(stageId) {
+    const container = document.getElementById("stepsContainer");
+    container.innerHTML = "";
+
+    const activeIndex = STAGES.findIndex(s => s.id === stageId);
+    const idx = activeIndex >= 0 ? activeIndex : 0;
+
+    const pct = Math.round((idx / (STAGES.length - 1)) * 100);
+    document.getElementById("progressBar").style.width = pct + "%";
+    document.getElementById("subtitle").textContent =
+      `Step ${idx + 1} of ${STAGES.length} · ${pct}% complete`;
+
+    STAGES.forEach((stage, i) => {
+      const isDone    = i < idx;
+      const isActive  = i === idx;
+      const cls       = isDone ? "done" : isActive ? "active" : "pending";
+      const badgeCls  = isDone ? "badge-done" : isActive ? "badge-active" : "badge-pending";
+      const badgeText = isDone ? "COMPLETE"   : isActive ? "IN PROGRESS"  : "PENDING";
+
+      const step = document.createElement("div");
+      step.className = `step ${cls}`;
+      step.innerHTML = `
+        <div class="icon-wrap">
+          <img class="checkmark" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E" />
+          <span class="step-num">${i + 1}</span>
+          <div class="spinner"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-label">${stage.label}</div>
+          <div class="step-desc">${stage.desc}</div>
+          <span class="badge ${badgeCls}">${badgeText}</span>
+        </div>
+      `;
+      container.appendChild(step);
+    });
+  }
+
+  function showError(msg) {
+    document.getElementById("stateMsg").textContent = msg;
+    document.getElementById("stateMsg").classList.add("error");
+    document.getElementById("subtitle").textContent = "Could not load progress";
+  }
 </script>
 </body>
 </html>
