@@ -190,9 +190,9 @@
         const json = JSON.parse(text.replace(/^[^{]*/, "").replace(/[^}]*$/, ""));
         const rows = json.table.rows;
 
-        // Find row where column B (email) matches the client email
+        // Find row where column D (email) matches the client email
         const match = rows.find(r => {
-          const cellVal = r.c[1]?.v;
+          const cellVal = r.c[3]?.v;
           return cellVal !== null && cellVal !== undefined &&
                  String(cellVal).toLowerCase() === String(clientEmail).toLowerCase();
         });
@@ -202,8 +202,9 @@
           return;
         }
 
-        // Column C = stage_id
-        const stageId = String(match.c[2]?.v ?? "");
+        // Column C = stage_id (may arrive as scientific notation float, convert to integer string)
+        const rawStage = match.c[2]?.v ?? "";
+        const stageId = String(Math.round(Number(rawStage)));
         render(stageId);
       })
       .catch(() => showError("Could not load progress. Please try again later."));
