@@ -167,19 +167,20 @@
     { id: "1409895208", label: "LLC Completed",      desc: "Your LLC is fully formed and active. Congratulations!" }
   ];
 
-  // ─── GET DEAL ID FROM URL ───────────────────────────────────
-  // Assembly embed URL format: checklist.html?deal=63264112971
-  const params  = new URLSearchParams(window.location.search);
-  const dealId  = params.get("deal");
+  // ─── GET EMAIL FROM URL ─────────────────────────────────────
+  // Assembly injects client email automatically via URL parameters
+  // embed URL format: checklist.html?email=client@example.com
+  const params = new URLSearchParams(window.location.search);
+  const email  = params.get("email");
 
-  if (!dealId) {
-    showError("No deal ID provided. Add ?deal=YOUR_DEAL_ID to the URL.");
+  if (!email) {
+    showError("No client email provided. Contact support.");
   } else {
-    fetchStage(dealId);
+    fetchStage(email);
   }
 
   // ─── FETCH FROM GOOGLE SHEETS ───────────────────────────────
-  function fetchStage(id) {
+  function fetchStage(clientEmail) {
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
     fetch(url)
@@ -189,14 +190,15 @@
         const json = JSON.parse(text.replace(/^[^{]*/, "").replace(/[^}]*$/, ""));
         const rows = json.table.rows;
 
-        // Find row where column A (company_id) matches our deal ID
+        // Find row where column B (email) matches the client email
         const match = rows.find(r => {
-          const cellVal = r.c[0]?.v;
-          return cellVal !== null && cellVal !== undefined && String(cellVal) === String(id);
+          const cellVal = r.c[1]?.v;
+          return cellVal !== null && cellVal !== undefined &&
+                 String(cellVal).toLowerCase() === String(clientEmail).toLowerCase();
         });
 
         if (!match) {
-          showError(`Deal ${id} not found in tracker. Please contact support.`);
+          showError("Your progress could not be found. Please contact support.");
           return;
         }
 
