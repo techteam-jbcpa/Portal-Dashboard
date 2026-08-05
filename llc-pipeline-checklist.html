@@ -2,60 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LLC Formation Progress</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your LLC Formation Progress</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f9f8f6;
-      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fb;
+      color: #1a1a2e;
       min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
     }
 
     .card {
       background: #fff;
-      border-radius: 14px;
-      padding: 28px 32px;
-      max-width: 540px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      border-radius: 16px;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.08);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
     }
 
-    h2 {
-      font-size: 16px;
+    .logo {
+      font-size: 13px;
       font-weight: 600;
-      color: #1a1a1a;
+      color: #6b7280;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
       margin-bottom: 6px;
-      letter-spacing: -0.2px;
     }
 
     .subtitle {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 24px;
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 32px;
     }
 
-    .progress-bar-wrap {
-      background: #eee;
-      border-radius: 99px;
+    .progress-wrap {
+      background: #f3f4f6;
+      border-radius: 100px;
       height: 6px;
-      margin-bottom: 28px;
+      margin-bottom: 8px;
       overflow: hidden;
     }
-    .progress-bar-fill {
+    .progress-bar {
       height: 100%;
-      border-radius: 99px;
-      background: linear-gradient(90deg, #2e7d32, #66bb6a);
-      transition: width 0.5s ease;
+      border-radius: 100px;
+      background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+      transition: width 0.6s ease;
+    }
+    .progress-label {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: right;
+      margin-bottom: 32px;
     }
 
-    .steps { display: flex; flex-direction: column; gap: 0; }
+    .steps { display: flex; flex-direction: column; }
 
     .step {
       display: flex;
       align-items: flex-start;
       gap: 16px;
+      padding: 14px 0;
       position: relative;
     }
 
@@ -63,196 +83,244 @@
       content: '';
       position: absolute;
       left: 15px;
-      top: 32px;
+      top: 46px;
+      bottom: -14px;
       width: 2px;
-      height: calc(100% - 8px);
-      background: #e0e0e0;
-      z-index: 0;
+      background: #e5e7eb;
     }
-    .step.done:not(:last-child)::after { background: #2e7d32; }
+    .step.done:not(:last-child)::after { background: #1d4ed8; }
 
-    .icon-wrap {
+    .step-icon {
       width: 32px;
       height: 32px;
       border-radius: 50%;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      z-index: 1;
-      border: 2px solid #e0e0e0;
+      font-size: 13px;
+      font-weight: 700;
+      border: 2px solid #e5e7eb;
       background: #fff;
+      color: #9ca3af;
+      z-index: 1;
       position: relative;
     }
-    .step.done .icon-wrap  { background: #2e7d32; border-color: #2e7d32; }
-    .step.active .icon-wrap { background: #fff; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
-    .step.pending .icon-wrap { background: #f5f5f5; border-color: #e0e0e0; }
+    .step.done .step-icon   { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+    .step.active .step-icon { background: #fff; border-color: #1d4ed8; color: #1d4ed8; box-shadow: 0 0 0 4px #dbeafe; }
+    .step.onhold .step-icon { background: #fff7ed; border-color: #f59e0b; color: #f59e0b; }
 
-    .checkmark { width: 14px; height: 14px; display: none; }
-    .step.done .checkmark { display: block; filter: invert(1); }
+    .step-body { flex: 1; padding-top: 4px; }
 
-    .step-num { font-size: 11px; font-weight: 700; color: #bbb; }
-    .step.active .step-num { color: #f59e0b; }
+    .step-label { font-size: 15px; font-weight: 600; color: #374151; }
+    .step.done .step-label    { color: #111827; }
+    .step.active .step-label  { color: #1d4ed8; }
+    .step.onhold .step-label  { color: #b45309; }
+    .step.pending .step-label { color: #9ca3af; }
 
-    .spinner {
-      display: none;
-      width: 14px; height: 14px;
-      border: 2px solid #f59e0b;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    .step.active .spinner { display: block; }
-    .step.active .step-num { display: none; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .step-body { padding: 6px 0 24px 0; }
-    .step-label { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.3; }
-    .step.done .step-label { color: #555; }
-    .step.pending .step-label { color: #aaa; }
-    .step-desc { font-size: 12px; color: #aaa; margin-top: 3px; line-height: 1.4; }
-    .step.active .step-desc { color: #888; }
+    .step-desc { font-size: 13px; color: #9ca3af; margin-top: 2px; line-height: 1.5; }
+    .step.done .step-desc,
+    .step.active .step-desc { color: #6b7280; }
 
     .badge {
       display: inline-block;
-      font-size: 10px; font-weight: 700;
-      letter-spacing: 0.4px;
+      font-size: 11px;
+      font-weight: 600;
       padding: 2px 8px;
-      border-radius: 99px;
-      margin-top: 6px;
+      border-radius: 100px;
+      margin-left: 8px;
+      vertical-align: middle;
     }
-    .badge-done    { background: #e8f5e9; color: #2e7d32; }
-    .badge-active  { background: #fff8e1; color: #b45309; }
-    .badge-pending { background: #f5f5f5; color: #bbb; }
+    .badge-active { background: #dbeafe; color: #1d4ed8; }
+    .badge-onhold { background: #fef3c7; color: #b45309; }
+    .badge-done   { background: #d1fae5; color: #065f46; }
 
-    /* Loading / error states */
-    .state-msg {
-      font-size: 13px;
-      color: #aaa;
-      text-align: center;
-      padding: 32px 0;
+    .onhold-banner {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
     }
-    .state-msg.error { color: #e53935; }
+    .onhold-banner .icon { font-size: 20px; flex-shrink: 0; }
+    .onhold-banner strong { display: block; font-size: 14px; color: #92400e; margin-bottom: 2px; }
+    .onhold-banner p { font-size: 13px; color: #a16207; line-height: 1.5; }
+
+    .complete-banner {
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .complete-banner .icon { font-size: 28px; margin-bottom: 8px; }
+    .complete-banner strong { display: block; font-size: 16px; color: #065f46; margin-bottom: 4px; }
+    .complete-banner p { font-size: 13px; color: #047857; }
+
+    .state-msg { text-align: center; padding: 48px 0; color: #9ca3af; font-size: 15px; }
+    .state-msg .icon { font-size: 32px; margin-bottom: 12px; }
+
+    .footer {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid #f3f4f6;
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+    }
+    .footer a { color: #1d4ed8; text-decoration: none; }
   </style>
 </head>
 <body>
-
 <div class="card">
-  <h2>LLC Formation Progress</h2>
-  <p class="subtitle" id="subtitle">Loading your progress...</p>
+  <div class="logo">James Baker &amp; Associates</div>
+  <h1>Your LLC Formation Progress</h1>
+  <p class="subtitle">Track every step of your business formation journey.</p>
 
-  <div class="progress-bar-wrap">
-    <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+  <div id="root">
+    <div class="state-msg">
+      <div class="icon">&#9203;</div>
+      Loading your progress&hellip;
+    </div>
   </div>
 
-  <div class="steps" id="stepsContainer">
-    <p class="state-msg" id="stateMsg">Fetching status...</p>
+  <div class="footer">
+    Questions? Contact your advisor at
+    <a href="mailto:info@jamesbakercpa.com">info@jamesbakercpa.com</a>
   </div>
 </div>
 
 <script>
-  // ─── CONFIG ────────────────────────────────────────────────
-  const SHEET_ID   = "1xYEGMSw-OF7GYaX0Yeolx-9lK7PgLFpUH8zYAtFVCQQ";
-  const SHEET_NAME = "LLC Formation Pipeline";
+  var SUPABASE_URL  = 'https://rebmccnzqkhbmzvddolk.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlYm1jY256cWtoYm16dmRkb2xrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4ODE5OTksImV4cCI6MjEwMTQ1Nzk5OX0.u3eIiQ7o2U9rFO5h78aMvONn3aVyzzjlfYIuFWhyw0s';
 
-  // ─── STAGES (HubSpot Stage IDs) ────────────────────────────
-  const STAGES = [
-    { id: "1409895567", label: "Onboarding",        desc: "Welcome! We're getting your account ready." },
-    { id: "1409895561", label: "Account Setup",      desc: "Your account has been created and verified." },
-    { id: "1409895562", label: "Formation Filing",   desc: "Articles of organization filed with the state." },
-    { id: "1409895563", label: "LLC Registration",   desc: "State has registered your LLC." },
-    { id: "1409895564", label: "SS-4 Signature",     desc: "IRS form SS-4 requires your signature." },
-    { id: "1409895565", label: "EIN Processing",     desc: "IRS is processing your EIN application." },
-    { id: "1409895566", label: "EIN Approval",       desc: "Your Employer Identification Number is ready." },
-    { id: "1409895208", label: "LLC Completed",      desc: "Your LLC is fully formed and active. Congratulations!" }
+  var STEPS = [
+    { status: 'New',                         label: 'Journey Started',        desc: 'Your LLC formation has been initiated with James Baker & Associates.' },
+    { status: 'Onboarding/Info Request',     label: 'Onboarding',             desc: 'We are collecting your information to prepare the filing.' },
+    { status: 'Waiting for Client',          label: 'LLC Formation Filing',   desc: 'Documents are being reviewed and your LLC filing is being prepared.' },
+    { status: 'Work in Process in CU',       label: 'LLC Registration',       desc: 'Your LLC is being registered with the state.' },
+    { status: 'Step Two Financial Accounts', label: 'Opening Bank Accounts',  desc: 'Setting up your business banking and financial accounts.' },
+    { status: 'Waiting For ITIN',            label: 'ITIN Processing',        desc: 'Your Individual Taxpayer Identification Number application is in progress.' },
+    { status: 'Closed',                      label: 'Expansion Complete',     desc: 'Your LLC is fully formed and operational. Welcome!' }
   ];
 
-  // ─── GET EMAIL FROM URL ─────────────────────────────────────
-  // Assembly injects client email automatically via URL parameters
-  // embed URL format: checklist.html?email=client@example.com
-  const params = new URLSearchParams(window.location.search);
-  const email  = params.get("email");
+  var ON_HOLD_STATUSES = ['Unresponsive', 'Delinquent/Missing Payment', 'On Hold by Client'];
 
-  if (!email) {
-    showError("No client email provided. Contact support.");
-  } else {
-    fetchStage(email);
+  function getEmail() {
+    var params = new URLSearchParams(window.location.search);
+    return (params.get('email') || '').trim().toLowerCase();
   }
 
-  // ─── FETCH FROM GOOGLE SHEETS ───────────────────────────────
-  function fetchStage(clientEmail) {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+  function stepIconHtml(state) {
+    if (state === 'done')   return '&#10003;';
+    if (state === 'active') return '&#9679;';
+    if (state === 'onhold') return '&#9646;&#9646;';
+    return '';
+  }
 
-    fetch(url)
-      .then(r => r.text())
-      .then(text => {
-        // Strip Google's JSONP wrapper
-        const json = JSON.parse(text.replace(/^[^{]*/, "").replace(/[^}]*$/, ""));
-        const rows = json.table.rows;
+  function render(ticketStatus) {
+    var root   = document.getElementById('root');
+    var isHold = ON_HOLD_STATUSES.indexOf(ticketStatus) !== -1;
+    var isDone = (ticketStatus === 'Closed');
 
-        // Find row where column D (email) matches the client email
-        const match = rows.find(r => {
-          const cellVal = r.c[3]?.v;
-          return cellVal !== null && cellVal !== undefined &&
-                 String(cellVal).toLowerCase() === String(clientEmail).toLowerCase();
-        });
+    var activeIdx = -1;
+    for (var s = 0; s < STEPS.length; s++) {
+      if (STEPS[s].status === ticketStatus) { activeIdx = s; break; }
+    }
+    if (isHold && activeIdx < 0) activeIdx = 3; // fallback: show through LLC Registration
 
-        if (!match) {
-          showError("Your progress could not be found. Please contact support.");
-          return;
+    var pct = isDone ? 100 : (activeIdx < 0 ? 0 : Math.round((activeIdx / (STEPS.length - 1)) * 100));
+
+    var html = '';
+    html += '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%"></div></div>';
+    html += '<div class="progress-label">' + pct + '% complete</div>';
+
+    if (isDone) {
+      html += '<div class="complete-banner"><div class="icon">&#127881;</div>'
+            + '<strong>Your Expansion is Complete!</strong>'
+            + '<p>Your LLC is fully formed and ready to operate. Thank you for trusting James Baker &amp; Associates.</p>'
+            + '</div>';
+    } else if (isHold) {
+      html += '<div class="onhold-banner"><div class="icon">&#9888;&#65039;</div>'
+            + '<div><strong>Action Required</strong>'
+            + '<p>Your file is currently on hold. Please contact your advisor to continue the process.</p></div>'
+            + '</div>';
+    }
+
+    html += '<div class="steps">';
+    for (var i = 0; i < STEPS.length; i++) {
+      var step = STEPS[i];
+      var state;
+      if (isDone) {
+        state = 'done';
+      } else if (isHold) {
+        state = i < activeIdx ? 'done' : i === activeIdx ? 'onhold' : 'pending';
+      } else {
+        state = i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'pending';
+      }
+
+      var badge = '';
+      if (state === 'active')  badge = '<span class="badge badge-active">In Progress</span>';
+      else if (state === 'done')   badge = '<span class="badge badge-done">Complete</span>';
+      else if (state === 'onhold') badge = '<span class="badge badge-onhold">On Hold</span>';
+
+      var desc = (state !== 'pending') ? '<div class="step-desc">' + step.desc + '</div>' : '';
+
+      html += '<div class="step ' + state + '">'
+            + '<div class="step-icon">' + stepIconHtml(state) + '</div>'
+            + '<div class="step-body">'
+            + '<div class="step-label">' + step.label + badge + '</div>'
+            + desc
+            + '</div></div>';
+    }
+    html += '</div>';
+
+    root.innerHTML = html;
+  }
+
+  function renderError(msg) {
+    document.getElementById('root').innerHTML =
+      '<div class="state-msg"><div class="icon">&#9888;&#65039;</div>' + msg + '</div>';
+  }
+
+  function main() {
+    var email = getEmail();
+    if (!email) {
+      renderError('No client email found. Please access this page through your client portal.');
+      return;
+    }
+
+    fetch(
+      SUPABASE_URL + '/rest/v1/clients?contact_email=eq.' + encodeURIComponent(email) + '&select=ticket_status&limit=1',
+      {
+        headers: {
+          'apikey':        SUPABASE_ANON,
+          'Authorization': 'Bearer ' + SUPABASE_ANON
         }
-
-        // Column C = stage_id (may arrive as scientific notation float, convert to integer string)
-        const rawStage = match.c[2]?.v ?? "";
-        const stageId = String(Math.round(Number(rawStage)));
-        render(stageId);
-      })
-      .catch(() => showError("Could not load progress. Please try again later."));
-  }
-
-  // ─── RENDER CHECKLIST ───────────────────────────────────────
-  function render(stageId) {
-    const container = document.getElementById("stepsContainer");
-    container.innerHTML = "";
-
-    const activeIndex = STAGES.findIndex(s => s.id === stageId);
-    const idx = activeIndex >= 0 ? activeIndex : 0;
-
-    const pct = Math.round((idx / (STAGES.length - 1)) * 100);
-    document.getElementById("progressBar").style.width = pct + "%";
-    document.getElementById("subtitle").textContent =
-      `Step ${idx + 1} of ${STAGES.length} · ${pct}% complete`;
-
-    STAGES.forEach((stage, i) => {
-      const isDone    = i < idx;
-      const isActive  = i === idx;
-      const cls       = isDone ? "done" : isActive ? "active" : "pending";
-      const badgeCls  = isDone ? "badge-done" : isActive ? "badge-active" : "badge-pending";
-      const badgeText = isDone ? "COMPLETE"   : isActive ? "IN PROGRESS"  : "PENDING";
-
-      const step = document.createElement("div");
-      step.className = `step ${cls}`;
-      step.innerHTML = `
-        <div class="icon-wrap">
-          <img class="checkmark" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E" />
-          <span class="step-num">${i + 1}</span>
-          <div class="spinner"></div>
-        </div>
-        <div class="step-body">
-          <div class="step-label">${stage.label}</div>
-          <div class="step-desc">${stage.desc}</div>
-          <span class="badge ${badgeCls}">${badgeText}</span>
-        </div>
-      `;
-      container.appendChild(step);
+      }
+    )
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function(rows) {
+      if (!rows || rows.length === 0) {
+        renderError('We could not find your file. Please contact your advisor.');
+        return;
+      }
+      render(rows[0].ticket_status);
+    })
+    .catch(function(err) {
+      console.error(err);
+      renderError('Unable to load your progress. Please try again later.');
     });
   }
 
-  function showError(msg) {
-    document.getElementById("stateMsg").textContent = msg;
-    document.getElementById("stateMsg").classList.add("error");
-    document.getElementById("subtitle").textContent = "Could not load progress";
-  }
+  main();
 </script>
 </body>
 </html>
