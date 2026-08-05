@@ -92,16 +92,15 @@ def get_all_tickets():
         all_tickets.extend(results)
         print(f'  Fetched {len(results)} tickets (total so far: {len(all_tickets)})')
 
-        if MAX_TICKETS and len(all_tickets) >= MAX_TICKETS:
-            all_tickets = all_tickets[:MAX_TICKETS]
-            print(f'  MAX_TICKETS={MAX_TICKETS} reached — stopping early (test mode)')
-            break
-
         after = data.get('paging', {}).get('next', {}).get('after')
         if not after:
             break
 
         time.sleep(1)   # 1s pause between pages to stay under rate limit
+
+        # In test mode, one page is enough — stop after fetching first batch
+        if MAX_TICKETS:
+            break
 
     # Filter out old closed tickets in Python
     tickets = []
@@ -119,6 +118,11 @@ def get_all_tickets():
 
     if skipped:
         print(f'  Skipped {skipped} old closed tickets (>90 days)')
+
+    # Apply MAX_TICKETS limit AFTER filtering so we always get real tickets
+    if MAX_TICKETS and len(tickets) > MAX_TICKETS:
+        tickets = tickets[:MAX_TICKETS]
+        print(f'  Limited to {MAX_TICKETS} tickets (test mode)')
 
     return tickets
 
