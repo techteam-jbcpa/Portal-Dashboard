@@ -50,12 +50,15 @@ SB_HEADERS = {
 
 # ── Supabase helpers ───────────────────────────────────────────────────────────
 def get_unprovisioned():
-    """Return clients missing assembly_client_id but with a valid email."""
+    """Return clients that need any provisioning step.
+    Catches both fully new clients (no assembly_client_id) and
+    partially provisioned ones (assembly_client_id set but drive_folder_id missing).
+    """
     resp = requests.get(
         f'{SUPABASE_URL}/rest/v1/{TABLE}'
-        '?assembly_client_id=is.null'
-        '&contact_email=not.is.null'
-        '&select=ticket_id,contact_name,contact_email,ticket_subject',
+        '?contact_email=not.is.null'
+        '&or=(assembly_client_id.is.null,drive_folder_id.is.null)'
+        '&select=ticket_id,contact_name,contact_email,ticket_subject,assembly_client_id,drive_folder_id',
         headers=SB_HEADERS,
         timeout=30,
     )
@@ -188,31 +191,29 @@ def main():
         print(f'\nProvisioning: {email} ({subject})')
 
         try:
-            # 1. Create Assembly client
-            assembly_id = create_assembly_client(name, email)
-            print(f'  Assembly client created: {assembly_id}')
+            # Step 1 — Assembly client (skip if already created)
+            assembly_id = c.get('assembly_client_id')
+            if not assembly_id:
+                assembly_id = create_assembly_client(name, email)
+                patch_client(ticket_id, {'assembly_client_id': assembly_id})
+                print(f'  Assembly client created: {assembly_id}')
+                send_invite(assembly_id)
+                print(f'  Invite sent')
+                create_onboarding_task(assembly_id, CLICKUP_FORM_EN)
+            else:
+                print(f'  Assembly client already exists: {assembly_id} (skipping)')
 
-            # 2. Save assembly_client_id immediately — prevents duplicate on next run
-            patch_client(ticket_id, {'assembly_client_id': assembly_id})
-
-            # 3. Send magic link
-            send_invite(assembly_id)
-            print(f'  Invite sent')
-
-            # 4. Create Drive folder
-            folder_id = create_drive_folder(drive, subject)
-            print(f'  Drive folder created: {folder_id}')
-
-            # 5. Save drive_folder_id
-            patch_client(ticket_id, {'drive_folder_id': folder_id})
-
-            # 6. Onboarding task (English by default — add language field to HubSpot to auto-select)
-            create_onboarding_task(assembly_id, CLICKUP_FORM_EN)
+            # Step 2 — Drive folder (skip if already created)
+            if not c.get('drive_folder_id'):
+                folder_id = create_drive_folder(drive, subject)
+                patch_client(ticket_id, {'drive_folder_id': folder_id})
+                print(f'  Drive folder created: {folder_id}')
+            else:
+                print(f'  Drive folder already exists (skipping)')
 
         except Exception as e:
             print(f'  ERROR: {e}')
-            # Continue with next client — partial state is safe because assembly_client_id
-            # is saved immediately after creation, so next run skips Assembly and retries Drive/task.
+            # Continue with next client — next run retries any missing steps.
 
     print('\nProvisioner done.')
 
