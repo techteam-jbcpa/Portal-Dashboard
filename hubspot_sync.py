@@ -110,8 +110,8 @@ def get_all_tickets():
         props    = t.get('properties', {})
         stage_id = str(props.get('hs_pipeline_stage', ''))
         if stage_id == CLOSED_STAGE_ID:
-            created_ms = props.get('createdate', '0') or '0'
-            created    = datetime.fromtimestamp(int(created_ms) / 1000, tz=timezone.utc)
+            created_str = props.get('createdate', '') or ''
+            created     = datetime.fromisoformat(created_str.replace('Z', '+00:00')) if created_str else CLOSED_CUTOFF
             if created < CLOSED_CUTOFF:
                 skipped += 1
                 continue
