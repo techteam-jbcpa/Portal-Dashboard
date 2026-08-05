@@ -197,6 +197,8 @@
 <script>
   var SUPABASE_URL  = 'https://rebmccnzqkhbmzvddolk.supabase.co';
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlYm1jY256cWtoYm16dmRkb2xrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4ODE5OTksImV4cCI6MjEwMTQ1Nzk5OX0.u3eIiQ7o2U9rFO5h78aMvONn3aVyzzjlfYIuFWhyw0s';
+  var IS_TEST = new URLSearchParams(window.location.search).get('env') === 'test';
+  var TABLE   = IS_TEST ? 'clients_test' : 'clients';
 
   var STEPS = [
     { status: 'New',                         label: 'Journey Started',        desc: 'Your LLC formation has been initiated with James Baker & Associates.' },
@@ -295,7 +297,7 @@
     }
 
     fetch(
-      SUPABASE_URL + '/rest/v1/clients?contact_email=eq.' + encodeURIComponent(email) + '&select=ticket_status&limit=1',
+      SUPABASE_URL + '/rest/v1/' + TABLE + '?contact_email=eq.' + encodeURIComponent(email) + '&select=ticket_status&limit=1',
       {
         headers: {
           'apikey':        SUPABASE_ANON,
