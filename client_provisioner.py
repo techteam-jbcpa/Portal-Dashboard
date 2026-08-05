@@ -75,9 +75,24 @@ def patch_client(ticket_id, fields):
         raise Exception(f'Supabase PATCH failed {resp.status_code}: {resp.text[:200]}')
 
 # ── Assembly helpers ───────────────────────────────────────────────────────────
+def lookup_assembly_client(email):
+    """Look up an existing Assembly client by email. Returns client ID or None."""
+    resp = requests.get(
+        f'{ASSEMBLY_API}/clients?email={requests.utils.quote(email)}',
+        headers=AS_HEADERS,
+        timeout=30,
+    )
+    if resp.status_code != 200:
+        return None
+    data = resp.json()
+    # Response may be a list or a paginated object
+    items = data if isinstance(data, list) else data.get('data', [])
+    return items[0].get('id') if items else None
+
+
 def create_assembly_client(name, email):
-    """Create an Assembly client. Returns the new client ID."""
-    # Split name into given/family (best-effort)
+    """Create an Assembly client. Returns the new client ID.
+    If the email already exists (Google signup), looks up and returns existing ID."""
     parts = (name or '').strip().split(' ', 1)
     given  = parts[0] if parts else ''
     family = parts[1] if len(parts) > 1 else ''
@@ -88,10 +103,22 @@ def create_assembly_client(name, email):
         json={'givenName': given, 'familyName': family, 'email': email},
         timeout=30,
     )
-    if resp.status_code not in (200, 201):
-        raise Exception(f'Assembly create client failed {resp.status_code}: {resp.text[:200]}')
-    data = resp.json()
-    return data.get('id') or data.get('data', {}).get('id')
+
+    if resp.status_code in (200, 201):
+        data = resp.json()
+        return data.get('id') or data.get('data', {}).get('id')
+
+    # Handle case where client already exists via Google OAuth
+    if resp.status_code == 400:
+        body = resp.json()
+        if body.get('code') == 'google_account_already_exists':
+            print(f'  Client already exists (Google account) — looking up existing ID')
+            existing_id = lookup_assembly_client(email)
+            if existing_id:
+                return existing_id
+            raise Exception(f'google_account_already_exists but lookup returned nothing for {email}')
+
+    raise Exception(f'Assembly create client failed {resp.status_code}: {resp.text[:200]}')
 
 
 def send_invite(assembly_client_id):
