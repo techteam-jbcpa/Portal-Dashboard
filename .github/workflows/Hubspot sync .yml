@@ -31,5 +31,4 @@ jobs:
           HUBSPOT_TOKEN:        ${{ secrets.HUBSPOT_TOKEN }}
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          MAX_TICKETS:          '5'   # remove this line when going to production
-        run: python hubspot_sync.py
+      run: python hubspot_sync.py
