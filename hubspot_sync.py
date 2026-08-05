@@ -62,31 +62,26 @@ def hs_post(path, body, retries=4):
     raise Exception(f'HubSpot rate limit exceeded after {retries} retries: {path}')
 
 # ── Step 1: fetch tickets in Expansion Pipeline ───────────────────────────────
-# Syncs: all open tickets + Closed tickets from last 90 days.
-# Old closed tickets (>90 days) are not needed in the portal.
-CLOSED_STAGE_ID   = '4'
-CLOSED_CUTOFF_MS  = int((datetime.now(timezone.utc) - timedelta(days=90)).timestamp() * 1000)
+# Fetches all tickets in the pipeline, then filters in Python:
+#   - Open tickets: always included
+#   - Closed tickets: only last 90 days (old ones not needed in portal)
+CLOSED_STAGE_ID = '4'
+CLOSED_CUTOFF   = datetime.now(timezone.utc) - timedelta(days=90)
 
 def get_all_tickets():
-    tickets = []
-    after   = None
+    all_tickets = []
+    after       = None
 
     while True:
         body = {
-            'filterGroups': [
-                # Group 1: all open (non-Closed) tickets in Expansion Pipeline
-                {'filters': [
-                    {'propertyName': 'hs_pipeline',       'operator': 'EQ',  'value': EXPANSION_PIPELINE},
-                    {'propertyName': 'hs_pipeline_stage', 'operator': 'NEQ', 'value': CLOSED_STAGE_ID},
-                ]},
-                # Group 2: Closed tickets from last 90 days only
-                {'filters': [
-                    {'propertyName': 'hs_pipeline',       'operator': 'EQ',  'value': EXPANSION_PIPELINE},
-                    {'propertyName': 'hs_pipeline_stage', 'operator': 'EQ',  'value': CLOSED_STAGE_ID},
-                    {'propertyName': 'closedate',         'operator': 'GTE', 'value': str(CLOSED_CUTOFF_MS)},
-                ]},
-            ],
-            'properties': ['subject', 'hs_pipeline_stage'],
+            'filterGroups': [{
+                'filters': [{
+                    'propertyName': 'hs_pipeline',
+                    'operator':     'EQ',
+                    'value':        EXPANSION_PIPELINE,
+                }]
+            }],
+            'properties': ['subject', 'hs_pipeline_stage', 'createdate'],
             'limit': 100,
         }
         if after:
@@ -94,11 +89,11 @@ def get_all_tickets():
 
         data    = hs_post('/crm/v3/objects/tickets/search', body)
         results = data.get('results', [])
-        tickets.extend(results)
-        print(f'  Fetched {len(results)} tickets (total so far: {len(tickets)})')
+        all_tickets.extend(results)
+        print(f'  Fetched {len(results)} tickets (total so far: {len(all_tickets)})')
 
-        if MAX_TICKETS and len(tickets) >= MAX_TICKETS:
-            tickets = tickets[:MAX_TICKETS]
+        if MAX_TICKETS and len(all_tickets) >= MAX_TICKETS:
+            all_tickets = all_tickets[:MAX_TICKETS]
             print(f'  MAX_TICKETS={MAX_TICKETS} reached — stopping early (test mode)')
             break
 
@@ -107,6 +102,23 @@ def get_all_tickets():
             break
 
         time.sleep(1)   # 1s pause between pages to stay under rate limit
+
+    # Filter out old closed tickets in Python
+    tickets = []
+    skipped = 0
+    for t in all_tickets:
+        props    = t.get('properties', {})
+        stage_id = str(props.get('hs_pipeline_stage', ''))
+        if stage_id == CLOSED_STAGE_ID:
+            created_ms = props.get('createdate', '0') or '0'
+            created    = datetime.fromtimestamp(int(created_ms) / 1000, tz=timezone.utc)
+            if created < CLOSED_CUTOFF:
+                skipped += 1
+                continue
+        tickets.append(t)
+
+    if skipped:
+        print(f'  Skipped {skipped} old closed tickets (>90 days)')
 
     return tickets
 
