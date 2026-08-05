@@ -1,12 +1,12 @@
 # .github/workflows/hubspot-sync.yml
 # Polls HubSpot Expansion Pipeline tickets → upserts to Supabase
-# Runs every 5 minutes
+# Runs every 15 minutes (GitHub Actions free tier: ~1,440 min/month at ~30s/run)
 
 name: HubSpot → Supabase Sync
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # every 5 minutes
+    - cron: '*/15 * * * *'   # every 15 minutes
   workflow_dispatch:          # allow manual trigger from GitHub UI
 
 jobs:
@@ -28,7 +28,8 @@ jobs:
 
       - name: Run sync
         env:
-          HUBSPOT_TOKEN:      ${{ secrets.HUBSPOT_TOKEN }}
-          SUPABASE_URL:       ${{ secrets.SUPABASE_URL }}
+          HUBSPOT_TOKEN:        ${{ secrets.HUBSPOT_TOKEN }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          MAX_TICKETS:          '5'   # remove this line when going to production
         run: python hubspot_sync.py
