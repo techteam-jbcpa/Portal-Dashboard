@@ -1,0 +1,37 @@
+# .github/workflows/client-provisioner.yml
+# Provisions new Assembly clients, Drive folders, and onboarding tasks
+# for any Supabase row where assembly_client_id IS NULL.
+# Runs every 15 min (offset by 5 min from hubspot-sync so sync runs first).
+
+name: Client Provisioner
+
+on:
+  schedule:
+    - cron: '5,20,35,50 * * * *'   # offset 5 min after hubspot-sync (*/15)
+  workflow_dispatch:
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests google-api-python-client google-auth
+
+      - name: Run provisioner
+        env:
+          ASSEMBLY_API_KEY:             ${{ secrets.ASSEMBLY_API_KEY }}
+          SUPABASE_URL:                 ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY:         ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_JSON:  ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SUPABASE_TABLE:               'clients_test'   # remove this line for production
+        run: python client_provisioner.py
