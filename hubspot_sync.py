@@ -82,6 +82,7 @@ def get_all_tickets():
                 }]
             }],
             'properties': ['subject', 'hs_pipeline_stage', 'createdate'],
+            'sorts': [{'propertyName': 'createdate', 'direction': 'DESCENDING'}],
             'limit': 100,
         }
         if after:
