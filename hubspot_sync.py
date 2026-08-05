@@ -220,11 +220,12 @@ def main():
             no_email.append(tid)
 
         records.append({
-            'ticket_id':     tid,
-            'contact_email': email,
-            'contact_name':  contact.get('name', ''),
-            'company_name':  contact.get('company', ''),
-            'ticket_status': stage,
+            'ticket_id':      tid,
+            'contact_email':  email,
+            'contact_name':   contact.get('name', ''),
+            'company_name':   contact.get('company', ''),
+            'ticket_status':  stage,
+            'ticket_subject': props.get('subject', '') or '',
         })
 
     if no_email:
