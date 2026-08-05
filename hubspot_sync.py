@@ -4,7 +4,7 @@ Polls HubSpot Expansion Pipeline tickets → upserts to Supabase clients table.
 Only manages: ticket_id, contact_email, contact_name, company_name, ticket_status.
 Does NOT overwrite: assembly_client_id, drive_folder_id, file_channel_id (managed separately).
 
-Run via GitHub Actions every 15 minutes.
+Run via GitHub Actions every 5 minutes.
 """
 
 import os
