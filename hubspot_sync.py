@@ -4,13 +4,14 @@ Polls HubSpot Expansion Pipeline tickets → upserts to Supabase clients table.
 Only manages: ticket_id, contact_email, contact_name, company_name, ticket_status.
 Does NOT overwrite: assembly_client_id, drive_folder_id, file_channel_id (managed separately).
 
-Run via GitHub Actions every 5 minutes.
+Run via GitHub Actions every 15 minutes.
 """
 
 import os
 import sys
+import time
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # ── Config ────────────────────────────────────────────────────────────────────
 HUBSPOT_TOKEN      = os.environ['HUBSPOT_TOKEN']
@@ -18,6 +19,7 @@ SUPABASE_URL       = os.environ['SUPABASE_URL'].rstrip('/')
 SUPABASE_KEY       = os.environ['SUPABASE_SERVICE_KEY']
 
 EXPANSION_PIPELINE = '0'   # Expansion Pipeline internal ID
+MAX_TICKETS        = int(os.environ.get('MAX_TICKETS', 0))  # 0 = no limit (production)
 
 # HubSpot stage ID → human-readable name stored in Supabase
 STAGE_MAP = {
@@ -45,26 +47,45 @@ SB_HEADERS = {
     'Content-Type':  'application/json',
 }
 
-def hs_post(path, body):
-    url  = f'https://api.hubapi.com{path}'
-    resp = requests.post(url, headers=HS_HEADERS, json=body, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+def hs_post(path, body, retries=4):
+    """POST to HubSpot with automatic retry on 429 rate limit."""
+    url = f'https://api.hubapi.com{path}'
+    for attempt in range(retries):
+        resp = requests.post(url, headers=HS_HEADERS, json=body, timeout=30)
+        if resp.status_code == 429:
+            wait = int(resp.headers.get('Retry-After', 10)) + 2
+            print(f'  Rate limited — waiting {wait}s (attempt {attempt+1}/{retries})')
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp.json()
+    raise Exception(f'HubSpot rate limit exceeded after {retries} retries: {path}')
 
-# ── Step 1: fetch all tickets in Expansion Pipeline ───────────────────────────
+# ── Step 1: fetch tickets in Expansion Pipeline ───────────────────────────────
+# Syncs: all open tickets + Closed tickets from last 90 days.
+# Old closed tickets (>90 days) are not needed in the portal.
+CLOSED_STAGE_ID   = '4'
+CLOSED_CUTOFF_MS  = int((datetime.now(timezone.utc) - timedelta(days=90)).timestamp() * 1000)
+
 def get_all_tickets():
     tickets = []
     after   = None
 
     while True:
         body = {
-            'filterGroups': [{
-                'filters': [{
-                    'propertyName': 'hs_pipeline',
-                    'operator':     'EQ',
-                    'value':        EXPANSION_PIPELINE,
-                }]
-            }],
+            'filterGroups': [
+                # Group 1: all open (non-Closed) tickets in Expansion Pipeline
+                {'filters': [
+                    {'propertyName': 'hs_pipeline',       'operator': 'EQ',  'value': EXPANSION_PIPELINE},
+                    {'propertyName': 'hs_pipeline_stage', 'operator': 'NEQ', 'value': CLOSED_STAGE_ID},
+                ]},
+                # Group 2: Closed tickets from last 90 days only
+                {'filters': [
+                    {'propertyName': 'hs_pipeline',       'operator': 'EQ',  'value': EXPANSION_PIPELINE},
+                    {'propertyName': 'hs_pipeline_stage', 'operator': 'EQ',  'value': CLOSED_STAGE_ID},
+                    {'propertyName': 'closedate',         'operator': 'GTE', 'value': str(CLOSED_CUTOFF_MS)},
+                ]},
+            ],
             'properties': ['subject', 'hs_pipeline_stage'],
             'limit': 100,
         }
@@ -76,9 +97,16 @@ def get_all_tickets():
         tickets.extend(results)
         print(f'  Fetched {len(results)} tickets (total so far: {len(tickets)})')
 
+        if MAX_TICKETS and len(tickets) >= MAX_TICKETS:
+            tickets = tickets[:MAX_TICKETS]
+            print(f'  MAX_TICKETS={MAX_TICKETS} reached — stopping early (test mode)')
+            break
+
         after = data.get('paging', {}).get('next', {}).get('after')
         if not after:
             break
+
+        time.sleep(1)   # 1s pause between pages to stay under rate limit
 
     return tickets
 
